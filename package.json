@@ -1,0 +1,19 @@
+{
+  "name": "free2watch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FREE2WATCH - cinematic movie, series, TV show and anime streaming platform",
+  "scripts": {
+    "postinstall": "npm --prefix server install && npm --prefix client install",
+    "dev": "concurrently -n API,WEB -c cyan,magenta \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "seed": "npm --prefix server run seed",
+    "db:reset": "npm --prefix server run db:reset"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
