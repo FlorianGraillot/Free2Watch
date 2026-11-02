@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Content } from '../types';
+import type { Content, ContentKind } from '../types';
 import { ContentCard } from './ContentCard';
 import { cn } from '../utils/format';
 
@@ -13,6 +13,7 @@ interface ContentRowProps {
   loading?: boolean;
   className?: string;
   accent?: boolean;
+  defaultKind?: ContentKind;
 }
 
 export function ContentRow({
@@ -23,6 +24,7 @@ export function ContentRow({
   loading = false,
   className,
   accent,
+  defaultKind,
 }: ContentRowProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -84,12 +86,12 @@ export function ContentRow({
                   <div className="mt-2 h-2.5 w-2/5 skeleton" />
                 </div>
               ))
-            : items.map((item) => (
+            : items.map((item, index) => (
                 <div
-                  key={`${item.content_type ?? 'movie'}-${item.id}`}
+                  key={`${item.content_type ?? defaultKind ?? 'movie'}-${item.id}-${index}`}
                   className="w-[142px] shrink-0 snap-start sm:w-[164px] lg:w-[180px]"
                 >
-                  <ContentCard content={item} />
+                  <ContentCard content={item} defaultKind={defaultKind} />
                 </div>
               ))}
         </div>

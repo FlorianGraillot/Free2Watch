@@ -7,6 +7,17 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+export const TOKEN_STORAGE_KEY = 'f2w_token';
+
+api.interceptors.request.use((reqConfig) => {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (token) {
+    reqConfig.headers = reqConfig.headers || {};
+    reqConfig.headers.Authorization = `Bearer ${token}`;
+  }
+  return reqConfig;
+});
+
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
@@ -15,6 +26,7 @@ api.interceptors.response.use(
       window.location.pathname.startsWith('/admin') &&
       !window.location.pathname.startsWith('/admin/login')
     ) {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
       window.dispatchEvent(new Event('f2w:unauthorized'));
     }
     return Promise.reject(error);

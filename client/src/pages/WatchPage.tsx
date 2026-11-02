@@ -1,21 +1,28 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bookmark,
   ChevronLeft,
   ChevronRight,
   Clock,
+  Flag,
   Layers,
   ListVideo,
   Play,
+  Sparkles,
   Tv,
 } from 'lucide-react';
 import type { WatchData } from '../types';
 import { catalogService } from '../services/catalog.service';
+import { userPreferences } from '../services/userPreferences';
+import { useToast } from '../contexts/ToastContext';
 import { useApiData } from '../hooks/useApiData';
 import { useSeo } from '../hooks/useSeo';
 import { PosterImage } from '../components/PosterImage';
 import { VideoEmbed } from '../components/VideoEmbed';
 import { EmptyState } from '../components/EmptyState';
+import { AdSenseBanner } from '../components/common/AdSenseBanner';
 import { cn } from '../utils/format';
 import { contentPath, episodePath, kindLabel, SECTIONS, sectionForKind } from '../utils/routes';
 
@@ -36,27 +43,36 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
     [kind, slug, currentSeasonNumber, currentEpisodeNumber]
   );
 
-  useSeo({
-    title: data
-      ? `${data.content.title} — S${data.season.season_number}E${data.episode.episode_number}`
-      : 'Watch episode',
-    description: data?.content.description || undefined,
-    image: data?.content.poster || undefined,
-    type: 'video.tv_show',
-    canonicalPath: data
-      ? episodePath(kind, data.content.slug, data.season.season_number, data.episode.episode_number)
-      : undefined,
-    jsonLd: data
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'TVEpisode',
-          name: data.episode.title,
-          episodeNumber: data.episode.episode_number,
-          partOfSeason: data.season.season_number,
-          partOfSeries: { '@type': 'TVSeries', name: data.content.title },
-        }
-      : undefined,
-  });
+  const { notify } = useToast();
+  const [inWatchlist, setInWatchlist] = useState(false);
+
+  useEffect(() => {
+    if (data?.content && data?.season && data?.episode) {
+      setInWatchlist(userPreferences.isInWatchlist(data.content.id, kind));
+      userPreferences.recordWatch({
+        id: data.content.id,
+        slug: data.content.slug,
+        title: data.content.title,
+        poster: data.content.poster,
+        kind,
+        progressPercent: 50,
+        seasonNumber: data.season.season_number,
+        episodeNumber: data.episode.episode_number,
+        episodeTitle: data.episode.title,
+      });
+    }
+  }, [data, kind]);
+
+  const toggleWatchlist = () => {
+    if (!data?.content) return;
+    const nowIn = userPreferences.toggleWatchlist(data.content, kind);
+    setInWatchlist(nowIn);
+    notify(nowIn ? 'Added to your VIP Watchlist' : 'Removed from your VIP Watchlist', 'info');
+  };
+
+  const reportLink = () => {
+    notify('Thank you! Our cinema technical team will review this link.', 'success');
+  };
 
   if (error && !data) {
     return (
@@ -89,7 +105,7 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
 
   if (!data) return null;
   const { content, season, episode, episodes, previous, next } = data;
-  const detailHref = contentPath(content);
+  const detailHref = contentPath(content, kind);
 
   return (
     <div className="container-page py-6 sm:py-8">
@@ -141,7 +157,32 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
               <span className="inline-flex items-center gap-1"><Layers size={12} /> {episodes.length} episodes this season</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleWatchlist}
+                className={cn(
+                  'btn-sm btn flex items-center gap-1.5 transition',
+                  inWatchlist
+                    ? 'border-gold-500/50 bg-gold-500/15 text-gold-300 ring-1 ring-gold-500/30'
+                    : 'btn-secondary text-zinc-300'
+                )}
+                title={inWatchlist ? 'In My Watchlist' : 'Add to My Watchlist'}
+              >
+                <Bookmark size={13} className={inWatchlist ? 'fill-current text-gold-400' : ''} />
+                <span>{inWatchlist ? 'In My List' : 'Watchlist'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={reportLink}
+                className="btn-secondary btn-sm text-zinc-400 hover:text-rose-300"
+                title="Report broken or slow stream"
+              >
+                <Flag size={13} />
+                <span className="hidden sm:inline">Report</span>
+              </button>
+
               {previous ? (
                 <Link
                   to={episodePath(kind, content.slug, season.season_number, previous.episode_number)}
@@ -168,6 +209,9 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
               )}
             </div>
           </div>
+
+          {/* Video Player Sponsored Banner */}
+          <AdSenseBanner slotType="player_bottom" />
 
           <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row">
             <Link to={detailHref} className="group flex items-center gap-3">

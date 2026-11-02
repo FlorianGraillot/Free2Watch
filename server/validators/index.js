@@ -82,6 +82,9 @@ export function validateContent(kind, body, { partial = false } = {}) {
     if (body.quality !== undefined) payload.quality = text(body.quality, 'Quality', { max: 40 });
     if (body.duration !== undefined) payload.duration = text(body.duration, 'Duration', { max: 40 });
     if (body.movie_video !== undefined) payload.movie_video = url(body.movie_video, 'Movie video URL');
+    if (body.server1_url !== undefined) payload.server1_url = url(body.server1_url, 'Server 1 URL');
+    if (body.server2_url !== undefined) payload.server2_url = url(body.server2_url, 'Server 2 URL');
+    if (body.server3_url !== undefined) payload.server3_url = url(body.server3_url, 'Server 3 URL');
   } else if (body.series_url !== undefined) {
     payload.series_url = url(body.series_url, 'Series URL');
   }
@@ -140,6 +143,9 @@ export function validateEpisode(body, { partial = false } = {}) {
   if (body.duration !== undefined) payload.duration = text(body.duration, 'Duration', { max: 40 });
   if (body.episode_url !== undefined) payload.episode_url = url(body.episode_url, 'Episode URL');
   if (body.episode_video !== undefined) payload.episode_video = url(body.episode_video, 'Episode video URL');
+  if (body.server1_url !== undefined) payload.server1_url = url(body.server1_url, 'Server 1 URL');
+  if (body.server2_url !== undefined) payload.server2_url = url(body.server2_url, 'Server 2 URL');
+  if (body.server3_url !== undefined) payload.server3_url = url(body.server3_url, 'Server 3 URL');
 
   return payload;
 }

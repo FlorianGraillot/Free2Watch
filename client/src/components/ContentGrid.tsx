@@ -1,4 +1,4 @@
-import type { Content } from '../types';
+import type { Content, ContentKind } from '../types';
 import { ContentCard } from './ContentCard';
 import { cn } from '../utils/format';
 
@@ -8,6 +8,7 @@ interface ContentGridProps {
   skeletonCount?: number;
   className?: string;
   emptyState?: React.ReactNode;
+  defaultKind?: ContentKind;
 }
 
 export function ContentGrid({
@@ -16,6 +17,7 @@ export function ContentGrid({
   skeletonCount = 12,
   className,
   emptyState,
+  defaultKind,
 }: ContentGridProps) {
   if (loading && items.length === 0) {
     return (
@@ -47,8 +49,12 @@ export function ContentGrid({
         className
       )}
     >
-      {items.map((item) => (
-        <ContentCard key={`${item.content_type ?? 'movie'}-${item.id}`} content={item} />
+      {items.map((item, index) => (
+        <ContentCard
+          key={`${item.content_type ?? defaultKind ?? 'movie'}-${item.id}-${index}`}
+          content={item}
+          defaultKind={defaultKind}
+        />
       ))}
     </div>
   );

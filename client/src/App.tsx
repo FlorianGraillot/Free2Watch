@@ -18,6 +18,7 @@ import { AdminTitleManagePage } from './admin/AdminTitleManagePage';
 import { AdminCategoriesPage } from './admin/AdminCategoriesPage';
 import { AdminGenresPage } from './admin/AdminGenresPage';
 import { AdminSettingsPage } from './admin/AdminSettingsPage';
+import { AdminAdSensePage } from './admin/AdminAdSensePage';
 
 export function App() {
   return (
@@ -98,6 +99,7 @@ export function App() {
 
           <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="genres" element={<AdminGenresPage />} />
+          <Route path="adsense" element={<AdminAdSensePage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
 
           <Route path="*" element={<Navigate to="/admin" replace />} />

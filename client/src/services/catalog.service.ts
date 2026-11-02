@@ -82,10 +82,17 @@ export const taxonomyService = {
 export const authService = {
   async login(username: string, password: string): Promise<Admin> {
     const { data } = await api.post('/auth/login', { username, password });
+    if (data?.token) {
+      localStorage.setItem('f2w_token', data.token);
+    }
     return data.admin;
   },
   async logout(): Promise<void> {
-    await api.post('/auth/logout');
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      localStorage.removeItem('f2w_token');
+    }
   },
   async me(): Promise<Admin> {
     const { data } = await api.get('/auth/me');
@@ -97,6 +104,9 @@ export const authService = {
     password?: string;
   }): Promise<Admin> {
     const { data } = await api.put('/auth/credentials', payload);
+    if (data?.token) {
+      localStorage.setItem('f2w_token', data.token);
+    }
     return data.admin;
   },
 };

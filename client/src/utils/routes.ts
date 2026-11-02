@@ -80,9 +80,13 @@ export function kindLabel(kind: ContentKind): string {
 }
 
 /** Resolves the public details URL for any content item. */
-export function contentPath(item: Pick<Content, 'content_type' | 'slug'>): string {
-  const kind = item.content_type ?? 'movie';
-  return `${SECTIONS[sectionForKind(kind)].detailBase}/${item.slug}`;
+export function contentPath(
+  item: Pick<Content, 'content_type' | 'slug'>,
+  fallbackKind?: ContentKind
+): string {
+  const kind = item.content_type ?? fallbackKind ?? 'movie';
+  const sec = SECTIONS[sectionForKind(kind)];
+  return `${sec ? sec.detailBase : '/movie'}/${item.slug}`;
 }
 
 export function categoryPath(kind: ContentKind, slug: string): string {

@@ -195,3 +195,14 @@ export interface SearchSuggestion {
   content_type: ContentKind;
   route: string;
 }
+
+export interface AdSenseSettings {
+  enabled: boolean;
+  clientId: string;
+  testMode: boolean;
+  slotHeader: string;
+  slotInFeed: string;
+  slotPlayerBottom: string;
+  adsTxtContent?: string;
+}
+

@@ -63,9 +63,20 @@ export const catalogController = {
       .get(kind, content.id, Number(req.params.seasonNumber));
     if (!season) throw ApiError.notFound('Season not found');
 
-    const episodes = db
+    const rawEpisodes = db
       .prepare('SELECT * FROM episodes WHERE season_id = ? ORDER BY episode_number ASC')
       .all(season.id);
+
+    const episodes = rawEpisodes.map((ep) => {
+      const s1 = ep.server1_url || ep.episode_video || '';
+      return {
+        ...ep,
+        episode_video: s1,
+        server1_url: s1,
+        server2_url: ep.server2_url || '',
+        server3_url: ep.server3_url || '',
+      };
+    });
 
     const index = episodes.findIndex((episode) => episode.episode_number === Number(req.params.episodeNumber));
     if (index === -1) throw ApiError.notFound('Episode not found');

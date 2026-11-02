@@ -68,8 +68,12 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
   );
 
   const related = useMemo(
-    () => (relatedState.data?.items ?? []).filter((item) => item.id !== content?.id).slice(0, 10),
-    [relatedState.data, content?.id]
+    () =>
+      (relatedState.data?.items ?? [])
+        .filter((item) => item.id !== content?.id)
+        .map((item) => ({ ...item, content_type: item.content_type || (kind as ContentKind) }))
+        .slice(0, 10),
+    [relatedState.data, content?.id, kind]
   );
 
   useSeo({
@@ -124,6 +128,7 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
             src={content.poster || '/assets/poster-fallback.svg'}
             alt=""
             aria-hidden="true"
+            referrerPolicy="no-referrer"
             className="h-full w-full scale-110 object-cover object-top opacity-30 blur-3xl"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/92 to-ink-950/55" />
@@ -422,6 +427,7 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
             title="More like this"
             subtitle={content.category_name ? `More from ${content.category_name}` : undefined}
             items={related}
+            defaultKind={kind as ContentKind}
             loading={relatedState.loading}
             viewAllHref={content.category_slug ? categoryPath(kind as ContentKind, content.category_slug) : SECTIONS[section].basePath}
           />

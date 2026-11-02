@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
+  ArrowRight,
   CheckCircle2,
   Cookie,
   Database,
+  DollarSign,
   Eye,
   EyeOff,
   KeyRound,
@@ -308,6 +311,30 @@ export function AdminSettingsPage() {
                 username. Consider changing both the username and password.
               </div>
             )}
+          </section>
+
+          <section className="panel p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <DollarSign size={17} className="text-brand-400" />
+                <h3 className="font-display text-sm font-bold text-white">Monetization</h3>
+              </div>
+              <span className="badge bg-brand-500/10 text-brand-300 ring-1 ring-brand-500/20 text-[10px]">
+                AdSense
+              </span>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+              Configure Google AdSense publisher credentials, ad slots (header, in-feed, watch page), and automated ads.txt.
+            </p>
+            <div className="mt-4">
+              <Link
+                to="/admin/adsense"
+                className="btn-secondary w-full justify-between text-xs"
+              >
+                <span>Manage Google AdSense</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
           </section>
 
           <section className="panel p-5">

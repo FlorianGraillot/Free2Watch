@@ -15,8 +15,9 @@
   body {
     @apply bg-ink-950 font-sans text-zinc-100 antialiased;
     background-image:
-      radial-gradient(1200px 600px at 85% -10%, rgba(225, 29, 46, 0.1), transparent 60%),
-      radial-gradient(900px 500px at 0% 0%, rgba(232, 195, 122, 0.05), transparent 55%);
+      radial-gradient(1300px 700px at 75% -15%, rgba(229, 9, 20, 0.12), transparent 60%),
+      radial-gradient(1000px 600px at 15% -10%, rgba(229, 169, 60, 0.08), transparent 55%),
+      radial-gradient(900px 800px at 50% 100%, rgba(229, 9, 20, 0.05), transparent 70%);
     background-attachment: fixed;
   }
 
@@ -64,12 +65,20 @@
     @apply rounded-xl border border-white/[0.07] bg-white/[0.03];
   }
 
+  .panel-cinema {
+    @apply rounded-2xl border border-gold-500/20 bg-gradient-to-b from-ink-850/95 to-ink-900/95 shadow-cinema backdrop-blur-xl;
+  }
+
   .btn {
     @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply btn bg-brand-500 text-white shadow-[0_12px_30px_-12px_rgba(225,29,46,0.8)] hover:bg-brand-400 active:scale-[0.98];
+    @apply btn bg-gradient-to-r from-brand-600 via-brand-500 to-rose-600 text-white shadow-[0_12px_32px_-10px_rgba(225,29,46,0.85)] hover:brightness-110 active:scale-[0.98];
+  }
+
+  .btn-cinema-gold {
+    @apply btn border border-gold-500/40 bg-gradient-to-r from-amber-500/20 via-gold-500/25 to-amber-600/20 text-gold-300 shadow-[0_10px_25px_-10px_rgba(229,169,60,0.5)] hover:border-gold-500/70 hover:bg-gold-500/30 hover:text-white active:scale-[0.98];
   }
 
   .btn-secondary {

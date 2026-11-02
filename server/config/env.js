@@ -5,15 +5,16 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const serverRoot = path.resolve(__dirname, '..');
 
+dotenv.config({ path: path.resolve(serverRoot, '../.env') });
 dotenv.config({ path: path.join(serverRoot, '.env') });
 
 const rawDatabasePath = process.env.DATABASE_PATH || './database/free2watch.db';
 
 export const config = {
-  port: Number(process.env.PORT || 5000),
+  port: Number(process.env.PORT || 3000),
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: (process.env.NODE_ENV || 'development') === 'production',
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
   databasePath: path.isAbsolute(rawDatabasePath)
     ? rawDatabasePath
     : path.resolve(serverRoot, rawDatabasePath),

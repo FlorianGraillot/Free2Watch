@@ -58,6 +58,6 @@ export const authController = {
     const token = authService.signToken(updated);
     setSessionCookie(res, token);
 
-    res.json({ message: 'Credentials updated', admin: updated });
+    res.json({ message: 'Credentials updated', admin: updated, token });
   },
 };

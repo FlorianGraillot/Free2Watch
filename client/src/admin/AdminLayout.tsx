@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import {
   BarChart3,
   Clapperboard,
+  DollarSign,
   ExternalLink,
   Film,
   FolderTree,
@@ -51,6 +52,10 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
     ],
   },
   {
+    label: 'Monetization',
+    items: [{ to: '/admin/adsense', label: 'Google AdSense', icon: DollarSign }],
+  },
+  {
     label: 'System',
     items: [{ to: '/admin/settings', label: 'Settings', icon: Settings }],
   },
@@ -64,6 +69,7 @@ const TITLES: Record<string, string> = {
   '/admin/anime': 'Anime',
   '/admin/categories': 'Categories',
   '/admin/genres': 'Genres',
+  '/admin/adsense': 'Google AdSense',
   '/admin/settings': 'Settings',
 };
 

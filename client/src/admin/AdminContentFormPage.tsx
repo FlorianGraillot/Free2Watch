@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ExternalLink,
   Film,
+  Image as ImageIcon,
   Layers,
   Loader2,
   Save,
   Sparkles,
   Tv,
+  Upload,
+  AlertTriangle,
   Youtube,
 } from 'lucide-react';
+import { api } from '../services/api';
 import type { Category, Content, ContentKind, Genre } from '../types';
 import { contentService, type ContentPayload } from '../services/content.service';
 import { taxonomyService } from '../services/catalog.service';
@@ -66,10 +70,11 @@ const EMPTY_FORM: FormState = {
 };
 
 function isWebUrl(value: string): boolean {
-  if (!value.trim()) return true;
-  if (value.startsWith('/')) return true;
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (trimmed.startsWith('/') || trimmed.startsWith('data:image/')) return true;
   try {
-    const url = new URL(value);
+    const url = new URL(trimmed);
     return url.protocol === 'http:' || url.protocol === 'https:';
   } catch {
     return false;
@@ -77,9 +82,10 @@ function isWebUrl(value: string): boolean {
 }
 
 function isEmbedUrl(value: string): boolean {
-  if (!value.trim()) return true;
+  const trimmed = value.trim();
+  if (!trimmed) return true;
   try {
-    const url = new URL(value);
+    const url = new URL(trimmed);
     return url.protocol === 'http:' || url.protocol === 'https:';
   } catch {
     return false;
@@ -100,6 +106,44 @@ export function AdminContentFormPage({ kind }: { kind: ContentKind }) {
   const [submitting, setSubmitting] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [uploadingPoster, setUploadingPoster] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePosterFile = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      notify('Please select an image file (JPEG, PNG, WEBP, AVIF, SVG)', 'error');
+      return;
+    }
+    setUploadingPoster(true);
+    setPosterFailed(false);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUri = reader.result as string;
+      try {
+        const { data } = await api.post('/uploads/poster', {
+          image: dataUri,
+          filename: file.name,
+        });
+        update('poster', data.url || dataUri);
+        notify('Poster uploaded and saved', 'success');
+      } catch {
+        // Fall back to direct embedded data URI
+        update('poster', dataUri);
+        notify('Poster loaded from device', 'info');
+      } finally {
+        setUploadingPoster(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.onerror = () => {
+      notify('Failed to read image file', 'error');
+      setUploadingPoster(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   useSeo({
     title: editing ? `Edit ${meta.singular}` : `Add ${meta.singular}`,
@@ -318,18 +362,61 @@ export function AdminContentFormPage({ kind }: { kind: ContentKind }) {
               description="Posters are rendered as real images; trailers and videos are embedded as iframes."
             >
               <Field
-                label="Poster URL"
+                label="Poster Image"
                 htmlFor="poster"
                 error={errors.poster}
-                hint="Paste a direct image URL. A live preview appears on the right."
+                hint="Enter an image URL or upload an image file from your device."
               >
-                <input
-                  id="poster"
-                  value={form.poster}
-                  onChange={(event) => update('poster', event.target.value)}
-                  className="input"
-                  placeholder="https://example.com/poster.jpg"
-                />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      id="poster"
+                      value={form.poster}
+                      onChange={(event) => {
+                        update('poster', event.target.value);
+                        setPosterFailed(false);
+                      }}
+                      className="input"
+                      placeholder="https://example.com/poster.jpg or upload file →"
+                    />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={(e) => handlePosterFile(e.target.files?.[0])}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={uploadingPoster}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="btn-secondary shrink-0 gap-1.5"
+                      title="Upload an image file from your computer"
+                    >
+                      {uploadingPoster ? (
+                        <Loader2 size={15} className="animate-spin text-brand-400" />
+                      ) : (
+                        <Upload size={15} />
+                      )}
+                      <span className="hidden sm:inline">Upload file</span>
+                    </button>
+                  </div>
+
+                  {posterFailed && form.poster && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" />
+                      <div>
+                        <p className="font-semibold text-white">This image could not be loaded</p>
+                        <p className="mt-0.5 text-amber-200/90 leading-relaxed">
+                          The host website (such as streaming or Cloudflare-protected sites like egydead.live) blocks direct hotlinking.
+                        </p>
+                        <p className="mt-1 font-medium text-amber-100">
+                          Solution: Right-click the image, choose <strong>Save image as</strong>, and click <strong>Upload file</strong> above!
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </Field>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -527,18 +614,38 @@ export function AdminContentFormPage({ kind }: { kind: ContentKind }) {
             <div className="rounded-2xl border border-white/10 bg-ink-850/70 p-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-sm font-bold text-white">Poster preview</h3>
-                <span className="badge bg-white/5 text-zinc-400 ring-1 ring-white/10">2:3</span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-[11px] font-semibold text-brand-400 hover:text-brand-300 transition flex items-center gap-1"
+                >
+                  <Upload size={12} /> Upload
+                </button>
               </div>
-              <div className="mt-3">
+              <div
+                className="mt-3 group relative cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files?.[0]) handlePosterFile(e.dataTransfer.files[0]);
+                }}
+                title="Click or drop an image file here to set the poster"
+              >
                 <PosterImage
                   src={form.poster}
                   alt={form.title || 'Poster preview'}
+                  onStatusChange={(failed) => setPosterFailed(failed)}
                   className="w-full rounded-xl ring-1 ring-white/10"
                 />
+                <div className="absolute inset-0 rounded-xl bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1.5 text-white backdrop-blur-[2px]">
+                  <Upload size={22} className="text-brand-400" />
+                  <span className="text-xs font-semibold">Upload new image</span>
+                  <span className="text-[10px] text-zinc-400">or drop file here</span>
+                </div>
               </div>
-              <p className="mt-2 text-[10px] leading-relaxed text-zinc-600">
-                Uses a real &lt;img&gt; element with object-fit: cover and a fallback when the URL is
-                broken.
+              <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
+                Direct image link or local image upload (JPEG, PNG, WEBP, AVIF).
               </p>
             </div>
 

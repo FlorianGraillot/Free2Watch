@@ -1,9 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bookmark,
   Calendar,
   Clock,
+  Crown,
   Film,
   Globe2,
   Info,
@@ -14,12 +16,15 @@ import {
 } from 'lucide-react';
 import type { Content, ContentDetailResponse, ContentListResponse } from '../types';
 import { contentService } from '../services/content.service';
+import { userPreferences } from '../services/userPreferences';
+import { useToast } from '../contexts/ToastContext';
 import { useApiData } from '../hooks/useApiData';
 import { useSeo } from '../hooks/useSeo';
 import { PosterImage } from '../components/PosterImage';
 import { VideoEmbed } from '../components/VideoEmbed';
 import { ContentRow } from '../components/ContentRow';
 import { EmptyState, ErrorState } from '../components/EmptyState';
+import { AdSenseBanner } from '../components/common/AdSenseBanner';
 import { cn } from '../utils/format';
 import { categoryPath } from '../utils/routes';
 
@@ -72,6 +77,40 @@ export function MovieDetailsPage() {
     [relatedState.data, content?.id]
   );
 
+  const { notify } = useToast();
+  const [inWatchlist, setInWatchlist] = useState(false);
+
+  useEffect(() => {
+    if (content) {
+      setInWatchlist(userPreferences.isInWatchlist(content.id, 'movie'));
+    }
+  }, [content]);
+
+  const toggleWatchlist = () => {
+    if (!content) return;
+    const nowIn = userPreferences.toggleWatchlist(content, 'movie');
+    setInWatchlist(nowIn);
+    notify(nowIn ? 'Added to your VIP Watchlist' : 'Removed from your VIP Watchlist', 'info');
+  };
+
+  const openPlayer = () => {
+    setTab('player');
+    if (content) {
+      userPreferences.recordWatch({
+        id: content.id,
+        slug: content.slug,
+        title: content.title,
+        poster: content.poster,
+        kind: 'movie',
+        progressPercent: 35,
+      });
+    }
+    window.setTimeout(
+      () => playerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      60
+    );
+  };
+
   if (error && !content) {
     return (
       <div className="container-page py-16">
@@ -91,14 +130,6 @@ export function MovieDetailsPage() {
 
   if (!content) return null;
 
-  const openPlayer = () => {
-    setTab('player');
-    window.setTimeout(
-      () => playerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
-      60
-    );
-  };
-
   return (
     <div>
       {/* Cinematic header */}
@@ -108,6 +139,7 @@ export function MovieDetailsPage() {
             src={content.poster || '/assets/poster-fallback.svg'}
             alt=""
             aria-hidden="true"
+            referrerPolicy="no-referrer"
             className="h-full w-full scale-110 object-cover object-top opacity-30 blur-3xl"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/92 to-ink-950/55" />
@@ -198,6 +230,19 @@ export function MovieDetailsPage() {
                 </button>
                 <button
                   type="button"
+                  onClick={toggleWatchlist}
+                  className={cn(
+                    'btn px-5 py-3 text-sm font-semibold transition',
+                    inWatchlist
+                      ? 'border border-gold-500/50 bg-gold-500/15 text-gold-300 ring-1 ring-gold-500/30'
+                      : 'btn-secondary text-white'
+                  )}
+                >
+                  <Bookmark size={16} className={inWatchlist ? 'fill-current text-gold-400' : ''} />
+                  {inWatchlist ? 'In My Watchlist' : '+ Add to Watchlist'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setTab('trailer');
                     window.setTimeout(
@@ -265,6 +310,9 @@ export function MovieDetailsPage() {
             )}
           </div>
 
+          {/* Sponsored Ad Banner */}
+          <AdSenseBanner slotType="player_bottom" />
+
           <section className="panel p-5 sm:p-6">
             <h2 className="font-display text-lg font-bold text-white">Story</h2>
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-400">
@@ -313,6 +361,7 @@ export function MovieDetailsPage() {
             title="More like this"
             subtitle={content.category_name ? `More from ${content.category_name}` : 'From the same category'}
             items={related}
+            defaultKind="movie"
             loading={relatedState.loading}
             viewAllHref={content.category_slug ? categoryPath('movie', content.category_slug) : '/movies'}
           />

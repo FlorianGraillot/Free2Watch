@@ -1,0 +1,8 @@
+{
+  "name": "FREE2WATCH",
+  "description": "FREE2WATCH is a premium cinema and streaming destination for movies, TV series, TV shows and anime. Browse, discover and watch in one beautiful place.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

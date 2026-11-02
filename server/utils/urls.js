@@ -55,5 +55,10 @@ export function normalizeMediaUrl(value, { field = 'URL', required = false } = {
     if (required) throw ApiError.badRequest(`${field} is required`);
     return '';
   }
-  return normalizeEmbedUrl(String(value));
+  const clean = String(value).trim();
+  if (clean.startsWith('/') || clean.startsWith('data:image/')) {
+    return clean;
+  }
+  const secureUrl = clean.startsWith('http://') ? 'https://' + clean.slice(7) : clean;
+  return normalizeEmbedUrl(secureUrl);
 }

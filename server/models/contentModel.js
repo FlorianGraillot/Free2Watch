@@ -35,12 +35,24 @@ export function parseGenres(value) {
   }
 }
 
-export function serializeRow(row) {
+export function serializeRow(row, kind) {
   if (!row) return null;
+  const contentType = row.content_type || kind || null;
+  const isMovie = contentType === 'movie' || kind === 'movie';
+  const server1 = isMovie ? (row.server1_url || row.movie_video || '') : undefined;
   return {
     ...row,
+    content_type: contentType,
     genres: parseGenres(row.genres),
     year: row.year === null || row.year === undefined ? null : Number(row.year),
+    ...(isMovie
+      ? {
+          movie_video: server1,
+          server1_url: server1,
+          server2_url: row.server2_url || '',
+          server3_url: row.server3_url || '',
+        }
+      : {}),
   };
 }
 
@@ -125,7 +137,7 @@ export function listContent(kind, filters = {}) {
 
   const rows = db
     .prepare(
-      `SELECT t.*, c.name AS category_name, c.slug AS category_slug
+      `SELECT t.*, '${kind}' AS content_type, '${CONTENT_META[kind].route}' AS route, c.name AS category_name, c.slug AS category_slug
        ${EPISODIC_KINDS.has(kind)
          ? `, (SELECT COUNT(*) FROM seasons s WHERE s.content_type = '${kind}' AND s.content_id = t.id) AS season_count,
               (SELECT COUNT(*) FROM episodes e JOIN seasons s2 ON s2.id = e.season_id
@@ -140,7 +152,7 @@ export function listContent(kind, filters = {}) {
     .all(...params, limit, offset);
 
   return {
-    items: rows.map(serializeRow),
+    items: rows.map((row) => serializeRow(row, kind)),
     pagination: {
       page,
       limit,
@@ -189,7 +201,7 @@ export function findContent(kind, idOrSlug, { includeDrafts = false } = {}) {
 
   const row = db
     .prepare(
-      `SELECT t.*, c.name AS category_name, c.slug AS category_slug
+      `SELECT t.*, '${kind}' AS content_type, '${CONTENT_META[kind].route}' AS route, c.name AS category_name, c.slug AS category_slug
        FROM ${table} t
        LEFT JOIN categories c ON c.id = t.category_id
        WHERE t.${isNumeric ? 'id' : 'slug'} = ?`
@@ -198,7 +210,7 @@ export function findContent(kind, idOrSlug, { includeDrafts = false } = {}) {
 
   if (!row) return null;
   if (!includeDrafts && row.status !== 'published') return null;
-  return serializeRow(row);
+  return serializeRow(row, kind);
 }
 
 export function requireContent(kind, idOrSlug, options) {
@@ -251,7 +263,7 @@ const COMMON_COLUMNS = [
 
 function columnsFor(kind) {
   return kind === 'movie'
-    ? [...COMMON_COLUMNS, 'quality', 'duration', 'movie_video', 'status']
+    ? [...COMMON_COLUMNS, 'quality', 'duration', 'movie_video', 'server1_url', 'server2_url', 'server3_url', 'status']
     : [...COMMON_COLUMNS, 'series_url', 'status'];
 }
 
@@ -271,6 +283,14 @@ function toRecord(kind, data) {
     } else {
       record[column] = data[column] === undefined || data[column] === null ? '' : data[column];
     }
+  }
+
+  if (kind === 'movie') {
+    const s1 = String(record.server1_url || record.movie_video || '').trim();
+    record.server1_url = s1;
+    record.movie_video = s1;
+    record.server2_url = String(record.server2_url || '').trim();
+    record.server3_url = String(record.server3_url || '').trim();
   }
 
   // Empty media URLs are stored as NULL-friendly empty strings.
@@ -346,6 +366,7 @@ export function searchTitles(kind, query = '', limit = 30) {
   return db
     .prepare(
       `SELECT t.id, t.title, t.slug, t.status, t.poster, t.year,
+              '${kind}' AS content_type, '${CONTENT_META[kind].route}' AS route,
               (SELECT COUNT(*) FROM seasons s WHERE s.content_type = ? AND s.content_id = t.id) AS season_count,
               (SELECT COUNT(*) FROM episodes e JOIN seasons s2 ON s2.id = e.season_id
                 WHERE s2.content_type = ? AND s2.content_id = t.id) AS episode_count
@@ -355,5 +376,5 @@ export function searchTitles(kind, query = '', limit = 30) {
        LIMIT ?`
     )
     .all(kind, kind, like, Math.min(100, Math.max(1, Number(limit) || 30)))
-    .map(serializeRow);
+    .map((row) => serializeRow(row, kind));
 }

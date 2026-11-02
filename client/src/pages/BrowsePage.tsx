@@ -17,6 +17,7 @@ import { useSeo } from '../hooks/useSeo';
 import { ContentGrid } from '../components/ContentGrid';
 import { EmptyState, ErrorState } from '../components/EmptyState';
 import { Pagination } from '../components/Pagination';
+import { AdSenseBanner } from '../components/common/AdSenseBanner';
 import { SECTIONS } from '../utils/routes';
 import { cn } from '../utils/format';
 
@@ -146,7 +147,11 @@ export function BrowsePage({ section, categoryMode = false }: BrowsePageProps) {
   const activeFilterCount = [genre, year, language, country, quality, categoryMode ? '' : categoryParam, searchParam]
     .filter(Boolean).length;
 
-  const items = listState.data?.items ?? [];
+  const rawItems = listState.data?.items ?? [];
+  const items = useMemo(
+    () => rawItems.map((item) => ({ ...item, content_type: item.content_type || meta.kind })),
+    [rawItems, meta.kind]
+  );
   const pagination = listState.data?.pagination;
   const facets = facetsState.data;
 
@@ -331,6 +336,7 @@ export function BrowsePage({ section, categoryMode = false }: BrowsePageProps) {
 
             <ContentGrid
               items={items}
+              defaultKind={meta.kind}
               loading={listState.loading}
               skeletonCount={18}
               emptyState={
@@ -343,9 +349,12 @@ export function BrowsePage({ section, categoryMode = false }: BrowsePageProps) {
               }
             />
 
+            {/* In-feed Catalog Ad */}
+            <AdSenseBanner slotType="in_feed" />
+
             {pagination && (
               <Pagination
-                className="mt-10"
+                className="mt-6"
                 page={pagination.page}
                 totalPages={pagination.totalPages}
                 onPageChange={onPage}

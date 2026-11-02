@@ -39,7 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
 
-    const handleUnauthorized = () => setAdmin(null);
+    const handleUnauthorized = () => {
+      localStorage.removeItem('f2w_token');
+      setAdmin(null);
+    };
     window.addEventListener('f2w:unauthorized', handleUnauthorized);
     return () => window.removeEventListener('f2w:unauthorized', handleUnauthorized);
   }, [refresh]);

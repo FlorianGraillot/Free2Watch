@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Loader2, PlayCircle, ShieldAlert } from 'lucide-react';
+import { ExternalLink, Loader2, Moon, PlayCircle, ShieldAlert, Sun, RefreshCw } from 'lucide-react';
+import { userPreferences } from '../services/userPreferences';
 import { cn } from '../utils/format';
 
 interface VideoEmbedProps {
@@ -22,8 +23,7 @@ function isValidHttpUrl(value: string): boolean {
 }
 
 /**
- * Responsive 16:9 iframe player. Media is embedded only from http(s) sources;
- * the UI clearly explains when a third-party page blocks embedding.
+ * Responsive 16:9 iframe player with 5-Star Cinema Theater Mode (Dim Lights).
  */
 export function VideoEmbed({
   src,
@@ -36,6 +36,7 @@ export function VideoEmbed({
   const [loaded, setLoaded] = useState(false);
   const [slow, setSlow] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [theaterMode, setTheaterMode] = useState(() => userPreferences.getTheaterMode());
   const timerRef = useRef<number | null>(null);
   const url = (src ?? '').trim();
   const valid = url !== '' && isValidHttpUrl(url);
@@ -51,30 +52,55 @@ export function VideoEmbed({
     };
   }, [url, valid, autoLoad, reloadKey]);
 
+  const toggleTheater = () => {
+    const next = !theaterMode;
+    setTheaterMode(next);
+    userPreferences.setTheaterMode(next);
+  };
+
   if (!valid) {
     return (
       <div
         className={cn(
-          'flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/15 bg-ink-900/70 px-6 text-center',
+          'flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-gold-500/25 bg-ink-900/80 px-6 text-center shadow-panel backdrop-blur',
           className
         )}
       >
-        <PlayCircle size={34} className="text-zinc-600" />
-        <p className="text-sm font-medium text-zinc-400">{emptyLabel}</p>
-        <p className="max-w-sm text-xs text-zinc-600">
-          An administrator can attach an embeddable video URL from the dashboard.
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-zinc-600 ring-1 ring-white/10">
+          <PlayCircle size={32} />
+        </span>
+        <p className="text-sm font-semibold text-zinc-300">{emptyLabel}</p>
+        <p className="max-w-sm text-xs text-zinc-500">
+          Please attach a video stream URL in the administrator dashboard to stream this title.
         </p>
       </div>
     );
   }
 
   return (
-    <div className={cn('space-y-2', className)}>
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-black shadow-card">
+    <div className={cn('space-y-2.5', theaterMode && 'relative z-40', className)}>
+      {/* Theater Dim Scrim */}
+      {theaterMode && (
+        <div
+          className="fixed inset-0 z-30 bg-black/92 backdrop-blur-sm transition-opacity duration-500"
+          onClick={toggleTheater}
+          aria-label="Exit theater mode"
+        />
+      )}
+
+      {/* Main Video Frame */}
+      <div
+        className={cn(
+          'relative aspect-video w-full overflow-hidden rounded-2xl border bg-black transition-all duration-500',
+          theaterMode
+            ? 'border-gold-500/60 shadow-[0_0_90px_rgba(0,0,0,1)] ring-2 ring-gold-500/25 z-40'
+            : 'border-white/10 shadow-cinema'
+        )}
+      >
         {!loaded && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ink-900">
-            <Loader2 className="animate-spin text-brand-500" size={26} />
-            <p className="text-xs text-zinc-500">Loading player…</p>
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ink-950">
+            <Loader2 className="animate-spin text-brand-500" size={28} />
+            <p className="text-xs font-semibold text-zinc-400">Initializing Cinema Stream…</p>
           </div>
         )}
         {autoLoad && (
@@ -92,33 +118,60 @@ export function VideoEmbed({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500">
-        {slow ? (
-          <span className="inline-flex items-center gap-1.5 text-amber-300/90">
-            <ShieldAlert size={13} />
-            The source may block embedding. You can open it in a new tab.
-          </span>
-        ) : (
-          <span>If playback does not start, the source may not allow embedding.</span>
+      {/* Cinema Player Controls Bar */}
+      <div
+        className={cn(
+          'flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-400 transition',
+          theaterMode && 'relative z-40 bg-ink-950/90 p-2 rounded-xl border border-white/10'
         )}
+      >
+        <div className="flex items-center gap-2">
+          {slow ? (
+            <span className="inline-flex items-center gap-1.5 text-amber-300">
+              <ShieldAlert size={13} />
+              Slow connection. You can switch servers or open directly.
+            </span>
+          ) : (
+            <span className="text-zinc-500">
+              {theaterMode ? 'Theater Mode Active · Click outside or press toggle to restore' : '5-Star Cinema Player'}
+            </span>
+          )}
+        </div>
 
-        <span className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          {/* Dim Lights / Theater Mode Button */}
+          <button
+            type="button"
+            onClick={toggleTheater}
+            className={cn(
+              'inline-flex items-center gap-1.5 font-semibold transition rounded-lg px-2 py-1',
+              theaterMode
+                ? 'bg-gold-500/20 text-gold-300 ring-1 ring-gold-500/40'
+                : 'text-zinc-400 hover:text-white hover:bg-white/5'
+            )}
+            title={theaterMode ? 'Exit Theater Mode' : 'Dim Lights (Cinema Mode)'}
+          >
+            {theaterMode ? <Sun size={13} /> : <Moon size={13} />}
+            <span>{theaterMode ? 'Lights On' : 'Dim Lights'}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setReloadKey((key) => key + 1)}
-            className="font-medium text-zinc-400 transition hover:text-white"
+            className="inline-flex items-center gap-1 font-medium text-zinc-400 transition hover:text-white"
           >
-            Reload player
+            <RefreshCw size={11} /> Reload
           </button>
+
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 font-medium text-zinc-400 transition hover:text-white"
           >
-            Open source <ExternalLink size={11} />
+            Open Source <ExternalLink size={11} />
           </a>
-        </span>
+        </div>
       </div>
     </div>
   );

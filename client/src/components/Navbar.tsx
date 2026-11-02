@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
+  Bookmark,
   Clapperboard,
+  Dices,
   Film,
   Home,
   Loader2,
@@ -14,7 +16,9 @@ import {
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { PosterImage } from './PosterImage';
+import { WatchlistDrawer } from './WatchlistDrawer';
 import { catalogService } from '../services/catalog.service';
+import { userPreferences } from '../services/userPreferences';
 import { useDebouncedValue } from '../hooks/useApiData';
 import type { SearchSuggestion } from '../types';
 import { cn } from '../utils/format';
@@ -44,6 +48,17 @@ export function Navbar() {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebouncedValue(query, 300);
+
+  const [watchlistOpen, setWatchlistOpen] = useState(false);
+  const [watchlistCount, setWatchlistCount] = useState(() => userPreferences.getWatchlist().length);
+
+  useEffect(() => {
+    const handleWatchlistUpdate = (e: any) => {
+      setWatchlistCount(e.detail?.count ?? userPreferences.getWatchlist().length);
+    };
+    window.addEventListener('f2w:watchlist-updated', handleWatchlistUpdate);
+    return () => window.removeEventListener('f2w:watchlist-updated', handleWatchlistUpdate);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -164,10 +179,32 @@ export function Navbar() {
             >
               <Search size={14} />
               Search titles…
-              <kbd className="ml-2 rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-zinc-500">
+              <kbd className="ml-2 rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-zinc-500 font-mono">
                 /
               </kbd>
             </Link>
+
+            {/* 5-Star Cinema VIP Watchlist Button */}
+            <button
+              type="button"
+              onClick={() => setWatchlistOpen(true)}
+              className={cn(
+                'relative inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition',
+                watchlistCount > 0
+                  ? 'border-gold-500/40 bg-gold-500/10 text-gold-300 hover:border-gold-500/70 hover:bg-gold-500/20'
+                  : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:border-white/25 hover:text-white'
+              )}
+              aria-label={`Open My List (${watchlistCount} titles)`}
+              title="My VIP Watchlist"
+            >
+              <Bookmark size={14} className={watchlistCount > 0 ? 'fill-current text-gold-400' : ''} />
+              <span className="hidden sm:inline">My List</span>
+              {watchlistCount > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gold-500 px-1 text-[9px] font-bold text-black">
+                  {watchlistCount}
+                </span>
+              )}
+            </button>
 
             <button
               type="button"
@@ -246,6 +283,11 @@ export function Navbar() {
           </div>
         )}
       </header>
+
+      <WatchlistDrawer
+        isOpen={watchlistOpen}
+        onClose={() => setWatchlistOpen(false)}
+      />
 
       {/* Mobile drawer */}
       {mobileOpen && (
@@ -348,58 +390,76 @@ export function MobileNav() {
 
 export function Footer() {
   return (
-    <footer className="relative mt-20 border-t border-white/10 bg-ink-950">
+    <footer className="relative mt-20 border-t border-gold-500/15 bg-ink-950">
       <div className="container-page py-12 sm:pb-16">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <div className="max-w-sm">
+          <div className="max-w-sm space-y-3">
             <Logo size="md" />
-            <p className="mt-4 text-sm leading-relaxed text-zinc-500">
-              A premium home for cinema and episodic storytelling. Browse movies, TV series, TV shows
-              and anime — curated, organised and ready to watch.
+            <p className="text-sm leading-relaxed text-zinc-400">
+              The premier destination for 5-star cinema and episodic streaming. Handcrafted for cinephiles,
+              featuring multi-server 4K playback and private VIP watchlists.
             </p>
-            <div className="mt-5 flex items-center gap-2 text-[11px] text-zinc-600">
-              <Clapperboard size={14} className="text-brand-500" />
-              Built for the love of film.
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1 rounded bg-gold-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold-300 ring-1 ring-gold-500/20">
+                ★ 5-Star Cinema
+              </span>
+              <span className="inline-flex items-center gap-1 rounded bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-300 ring-1 ring-white/10">
+                4K Ultra HD
+              </span>
+              <span className="inline-flex items-center gap-1 rounded bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-300 ring-1 ring-white/10">
+                Dolby Audio
+              </span>
             </div>
           </div>
 
           <FooterColumn
-            title="Browse"
+            title="Cinema Halls"
             links={[
-              { label: 'Movies', to: '/movies' },
+              { label: 'Feature Films', to: '/movies' },
               { label: 'TV Series', to: '/series' },
               { label: 'TV Shows', to: '/tv-shows' },
-              { label: 'Anime', to: '/anime' },
+              { label: 'Anime Showcase', to: '/anime' },
             ]}
           />
 
           <FooterColumn
-            title="Discover"
+            title="Collections"
             links={[
-              { label: 'Search', to: '/search' },
-              { label: 'Arabic Movies', to: '/movies/category/arabic-movies' },
-              { label: 'Korean Series', to: '/series/category/korean-series' },
-              { label: 'Japanese Anime', to: '/anime/category/japanese-anime' },
+              { label: 'Box Office Top 10', to: '/search?sort=latest' },
+              { label: 'Search Archives', to: '/search' },
+              { label: 'Arabic Cinema', to: '/movies/category/arabic-movies' },
+              { label: 'Anime Premieres', to: '/anime/category/japanese-anime' },
             ]}
           />
 
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">About</h3>
-            <ul className="mt-4 space-y-2.5 text-sm text-zinc-500">
-              <li>Curated catalogue</li>
-              <li>Four independent content types</li>
-              <li>Seasons &amp; episodes</li>
-              <li>Responsive on every screen</li>
+            <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-gold-400">VIP Experience</h3>
+            <ul className="mt-4 space-y-2.5 text-sm text-zinc-400">
+              <li className="flex items-center gap-2 text-zinc-400">
+                <span>·</span> Zero Buffering Triple Server
+              </li>
+              <li className="flex items-center gap-2 text-zinc-400">
+                <span>·</span> Cinema Theater Mode (Dim Lights)
+              </li>
+              <li className="flex items-center gap-2 text-zinc-400">
+                <span>·</span> Automatic Watch Progress Resume
+              </li>
+              <li className="flex items-center gap-2 text-zinc-400">
+                <span>·</span> Private Browser Watchlist
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-[11px] text-zinc-600 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} FREE2WATCH. All rights reserved.</p>
-          <p>
-            Only embed or distribute media you own or have permission to use. Third-party players may
-            restrict embedding.
-          </p>
+        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-[11px] text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} FREE2WATCH 5-Star Cinema. All rights reserved.</p>
+          <div className="flex flex-wrap items-center gap-4 text-zinc-400">
+            <span>High-definition streaming entertainment</span>
+            <span>·</span>
+            <a href="/ads.txt" target="_blank" rel="noreferrer" className="hover:text-gold-300 transition">
+              ads.txt
+            </a>
+          </div>
         </div>
       </div>
     </footer>

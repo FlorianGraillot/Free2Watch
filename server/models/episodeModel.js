@@ -11,21 +11,33 @@ function findSeason(kind, contentId, seasonId) {
   return season;
 }
 
+function serializeEpisode(row) {
+  if (!row) return null;
+  const s1 = row.server1_url || row.episode_video || '';
+  return {
+    ...row,
+    episode_video: s1,
+    server1_url: s1,
+    server2_url: row.server2_url || '',
+    server3_url: row.server3_url || '',
+  };
+}
+
 export const episodeModel = {
   list(kind, contentId, seasonId) {
     const season = findSeason(kind, contentId, seasonId);
     return getDb()
       .prepare('SELECT * FROM episodes WHERE season_id = ? ORDER BY episode_number ASC')
-      .all(season.id);
+      .all(season.id)
+      .map(serializeEpisode);
   },
 
   findById(kind, contentId, seasonId, episodeId) {
     const season = findSeason(kind, contentId, seasonId);
-    return (
-      getDb()
-        .prepare('SELECT * FROM episodes WHERE id = ? AND season_id = ?')
-        .get(Number(episodeId), season.id) ?? null
-    );
+    const row = getDb()
+      .prepare('SELECT * FROM episodes WHERE id = ? AND season_id = ?')
+      .get(Number(episodeId), season.id);
+    return serializeEpisode(row);
   },
 
   create(kind, contentId, seasonId, data) {
@@ -41,10 +53,14 @@ export const episodeModel = {
       .get(season.id, episodeNumber);
     if (duplicate) throw ApiError.conflict(`Episode ${episodeNumber} already exists in this season`);
 
+    const s1 = String(data.server1_url || data.episode_video || '').trim();
+    const s2 = String(data.server2_url || '').trim();
+    const s3 = String(data.server3_url || '').trim();
+
     const info = db
       .prepare(
-        `INSERT INTO episodes (season_id, title, episode_number, quality, duration, episode_url, episode_video)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO episodes (season_id, title, episode_number, quality, duration, episode_url, episode_video, server1_url, server2_url, server3_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         season.id,
@@ -53,7 +69,10 @@ export const episodeModel = {
         data.quality ?? '',
         data.duration ?? '',
         data.episode_url ?? '',
-        data.episode_video ?? ''
+        s1,
+        s1,
+        s2,
+        s3
       );
 
     return this.findById(kind, contentId, season.id, info.lastInsertRowid);
@@ -77,16 +96,33 @@ export const episodeModel = {
       .get(season.id, episodeNumber, existing.id);
     if (duplicate) throw ApiError.conflict(`Episode ${episodeNumber} already exists in this season`);
 
+    const s1 = String(
+      data.server1_url !== undefined
+        ? data.server1_url
+        : data.episode_video !== undefined
+        ? data.episode_video
+        : existing.server1_url || existing.episode_video || ''
+    ).trim();
+    const s2 = String(
+      data.server2_url !== undefined ? data.server2_url : existing.server2_url || ''
+    ).trim();
+    const s3 = String(
+      data.server3_url !== undefined ? data.server3_url : existing.server3_url || ''
+    ).trim();
+
     db.prepare(
       `UPDATE episodes SET title = ?, episode_number = ?, quality = ?, duration = ?,
-       episode_url = ?, episode_video = ?, updated_at = datetime('now') WHERE id = ?`
+       episode_url = ?, episode_video = ?, server1_url = ?, server2_url = ?, server3_url = ?, updated_at = datetime('now') WHERE id = ?`
     ).run(
       String(data.title ?? existing.title).trim(),
       episodeNumber,
       data.quality ?? existing.quality ?? '',
       data.duration ?? existing.duration ?? '',
       data.episode_url ?? existing.episode_url ?? '',
-      data.episode_video ?? existing.episode_video ?? '',
+      s1,
+      s1,
+      s2,
+      s3,
       existing.id
     );
 
@@ -163,6 +199,6 @@ export const episodeModel = {
       .get(season.id, Number(episodeNumber));
     if (!episode) return null;
 
-    return { content, season, episode };
+    return { content, season, episode: serializeEpisode(episode) };
   },
 };

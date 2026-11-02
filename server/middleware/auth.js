@@ -3,11 +3,12 @@ import { config } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 
 function extractToken(req) {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) return header.slice(7);
+
   const cookieToken = req.cookies?.[config.cookieName];
   if (cookieToken) return cookieToken;
 
-  const header = req.headers.authorization;
-  if (header?.startsWith('Bearer ')) return header.slice(7);
   return null;
 }
 

@@ -3,6 +3,7 @@ import { getDb } from './connection.js';
 import { runMigrations } from './migrate.js';
 import { config } from '../config/env.js';
 import { seedReferenceData } from './seedData.js';
+import { seedDemoCatalogue } from './seedDemo.js';
 
 /**
  * Bootstraps the database: migrations, the single administrator account and
@@ -14,6 +15,7 @@ export function initializeDatabase() {
 
   ensureAdmin(db);
   seedReferenceData(db);
+  seedDemoCatalogue(db);
 
   return db;
 }

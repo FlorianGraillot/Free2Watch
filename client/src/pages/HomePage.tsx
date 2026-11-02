@@ -2,18 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
+  Bookmark,
   Clapperboard,
   Compass,
+  Crown,
+  Film,
   Info,
   Play,
   Sparkles,
+  Star,
   TrendingUp,
+  Volume2,
 } from 'lucide-react';
 import { catalogService } from '../services/catalog.service';
+import { userPreferences } from '../services/userPreferences';
 import { useApiData } from '../hooks/useApiData';
 import { useSeo } from '../hooks/useSeo';
 import { ContentRow } from '../components/ContentRow';
+import { TopTenRow } from '../components/TopTenRow';
+import { ContinueWatchingRow } from '../components/ContinueWatchingRow';
 import { EmptyState, ErrorState } from '../components/EmptyState';
+import { AdSenseBanner } from '../components/common/AdSenseBanner';
 import type { Content, ContentKind, HomeData } from '../types';
 import { contentPath, kindLabel, SECTIONS, sectionForKind } from '../utils/routes';
 import { cn } from '../utils/format';
@@ -21,28 +30,43 @@ import { cn } from '../utils/format';
 export function HomePage() {
   const { data, loading, error, refresh } = useApiData<HomeData>(() => catalogService.home(), []);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [heroInWatchlist, setHeroInWatchlist] = useState(false);
 
   useSeo({
-    title: 'FREE2WATCH — Movies, TV Series, TV Shows & Anime',
+    title: 'FREE2WATCH — 5-Star Cinema & Streaming Destination',
     description:
-      'Stream and discover movies, TV series, TV shows and anime on FREE2WATCH — a premium, beautifully curated cinema platform.',
+      'Experience 5-star premier cinema at home. Stream high-definition movies, TV series, TV shows and anime on FREE2WATCH with pristine 4K video and multi-server playback.',
     canonicalPath: '/',
   });
 
   const heroItems = useMemo(() => (data?.hero ?? []).slice(0, 5), [data]);
   const hero = heroItems[heroIndex] ?? null;
 
+  // Auto-rotate hero every 8 seconds
   useEffect(() => {
     if (heroItems.length <= 1) return;
     const timer = window.setInterval(() => {
       setHeroIndex((index) => (index + 1) % heroItems.length);
-    }, 9000);
+    }, 8500);
     return () => window.clearInterval(timer);
   }, [heroItems.length]);
 
   useEffect(() => {
     if (heroIndex >= heroItems.length) setHeroIndex(0);
   }, [heroIndex, heroItems.length]);
+
+  // Sync hero watchlist state
+  useEffect(() => {
+    if (hero) {
+      setHeroInWatchlist(userPreferences.isInWatchlist(hero.id, hero.content_type));
+    }
+  }, [hero]);
+
+  const toggleHeroWatchlist = () => {
+    if (!hero) return;
+    const nowIn = userPreferences.toggleWatchlist(hero);
+    setHeroInWatchlist(nowIn);
+  };
 
   const categoryGroups = useMemo(() => {
     const groups: Partial<Record<ContentKind, NonNullable<HomeData['categories']>>> = {};
@@ -59,7 +83,7 @@ export function HomePage() {
     return (
       <div className="container-page py-16">
         <ErrorState
-          title="The catalogue could not be loaded"
+          title="The cinema catalogue could not be loaded"
           message="Check that the FREE2WATCH API is running, then try again."
           onRetry={refresh}
         />
@@ -68,148 +92,243 @@ export function HomePage() {
   }
 
   return (
-    <div className="pb-10">
-      {/* Hero */}
-      <section className="container-page pt-4 sm:pt-6">
-        {loading && !data ? (
-          <HeroSkeleton />
-        ) : hero ? (
-          <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-ink-900">
+    <div className="pb-16">
+      {/* 5-STAR GRAND CINEMA HERO MARQUEE */}
+      <section className="relative w-full overflow-hidden border-b border-gold-500/15 bg-ink-950">
+        {/* Background cinema hall photo with deep vignette */}
+        <div className="absolute inset-0 pointer-events-none select-none">
+          <img
+            src="/src/assets/images/hero_cinema_marquee_1793469559517.jpg"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover object-center opacity-30 blur-sm scale-105"
+          />
+          {/* Film backdrop overlay if available */}
+          {hero?.poster && (
             <img
-              src={hero.poster || '/assets/poster-fallback.svg'}
+              src={hero.poster}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-full w-full scale-110 object-cover object-top opacity-35 blur-2xl"
+              className="absolute right-0 top-0 h-full w-2/3 object-cover object-top opacity-20 blur-3xl"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/90 to-ink-950/20" />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950/40" />
-            <div className="grain absolute inset-0" />
+          )}
+          {/* Ambient lighting gradients */}
+          <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/95 to-ink-950/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-ink-950/80 via-transparent to-ink-950" />
+          <div className="grain absolute inset-0 opacity-20" />
+        </div>
 
-            <div className="relative grid gap-8 p-6 sm:p-9 lg:grid-cols-[1.35fr_0.65fr] lg:items-center lg:p-12">
-              <div className="max-w-2xl animate-fade-up">
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <span className="badge bg-brand-500/15 text-brand-200 ring-1 ring-brand-500/30">
-                    <Sparkles size={12} /> Featured
+        <div className="container-page relative z-10 py-10 sm:py-16 lg:py-20">
+          {loading && !data ? (
+            <HeroSkeleton />
+          ) : hero ? (
+            <div className="grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
+              <div className="space-y-5 animate-fade-up">
+                {/* 5-Star Consensus Badge */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/10 px-3 py-1 text-xs font-bold text-gold-300 shadow-[0_0_20px_rgba(229,169,60,0.25)]">
+                    <Crown size={13} className="text-gold-400 fill-current" />
+                    5-Star Cinema Premiere
                   </span>
-                  <span className="badge bg-white/[0.06] text-zinc-300 ring-1 ring-white/10">
-                    {kindLabel(hero.content_type ?? 'movie')}
+
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-400">
+                    <span className="flex text-amber-400">
+                      {'★'.repeat(5)}
+                    </span>
+                    <span className="text-white ml-1 font-mono">5.0</span>
                   </span>
-                  {hero.year && <span className="text-xs font-semibold text-zinc-400">{hero.year}</span>}
-                  {hero.quality && (
-                    <span className="text-xs font-semibold text-zinc-400">{hero.quality}</span>
-                  )}
+
+                  <span className="text-xs text-zinc-500">·</span>
+                  <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-200">
+                    {hero.quality || '4K ULTRA HD'}
+                  </span>
+                  <span className="hidden sm:inline text-xs text-zinc-500">·</span>
+                  <span className="hidden sm:inline-flex items-center gap-1 text-xs text-zinc-400">
+                    <Volume2 size={13} className="text-zinc-500" /> Dolby Atmos
+                  </span>
                 </div>
 
-                <h1 className="text-shadow font-display text-4xl font-extrabold leading-[1.03] tracking-tight text-white sm:text-5xl lg:text-6xl">
+                {/* Main Marquee Title */}
+                <h1 className="text-shadow font-display text-4xl sm:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight text-white max-w-3xl">
                   {hero.title}
                 </h1>
 
-                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
-                  {hero.category_name && (
-                    <Link
-                      to={`${SECTIONS[sectionForKind(hero.content_type ?? 'movie')].basePath}/category/${hero.category_slug}`}
-                      className="text-brand-300 transition hover:text-brand-200"
-                    >
-                      {hero.category_name}
-                    </Link>
+                {/* Clean Unboxed Metadata Discipline */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
+                  <span className="text-gold-400 font-semibold uppercase tracking-wider">
+                    {kindLabel(hero.content_type ?? 'movie')}
+                  </span>
+                  {hero.year && (
+                    <>
+                      <span>·</span>
+                      <span className="text-zinc-200 font-mono">{hero.year}</span>
+                    </>
                   )}
-                  {hero.language && <span>{hero.language}</span>}
-                  {hero.country && <span>{hero.country}</span>}
+                  {hero.duration && (
+                    <>
+                      <span>·</span>
+                      <span>{hero.duration}</span>
+                    </>
+                  )}
+                  {hero.category_name && (
+                    <>
+                      <span>·</span>
+                      <Link
+                        to={`${SECTIONS[sectionForKind(hero.content_type ?? 'movie')].basePath}/category/${hero.category_slug}`}
+                        className="text-zinc-300 hover:text-white transition"
+                      >
+                        {hero.category_name}
+                      </Link>
+                    </>
+                  )}
+                  {hero.language && (
+                    <>
+                      <span>·</span>
+                      <span>{hero.language}</span>
+                    </>
+                  )}
                 </div>
 
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-300 line-clamp-3 sm:text-base">
+                {/* Synopsis */}
+                <p className="max-w-2xl text-sm sm:text-base leading-relaxed text-zinc-300 line-clamp-3">
                   {hero.description || hero.story}
                 </p>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {hero.genres.slice(0, 4).map((genre) => (
-                    <span key={genre} className="chip">
+                {/* Unboxed Genres */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {hero.genres.map((genre) => (
+                    <Link
+                      key={genre}
+                      to={`/search?genre=${encodeURIComponent(genre)}`}
+                      className="inline-flex items-center rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-zinc-300 transition hover:border-gold-500/40 hover:text-white"
+                    >
                       {genre}
-                    </span>
+                    </Link>
                   ))}
                 </div>
 
-                <div className="mt-7 flex flex-wrap items-center gap-3">
+                {/* Grand Action CTAs */}
+                <div className="flex flex-wrap items-center gap-3 pt-3">
                   <Link
                     to={
                       hero.content_type === 'movie'
                         ? `${contentPath(hero)}?play=1`
                         : contentPath(hero)
                     }
-                    className="btn-primary px-6 py-3 text-sm"
+                    className="btn-primary px-7 py-3.5 text-base font-bold shadow-cinema"
                   >
-                    <Play size={17} fill="currentColor" />
-                    Watch now
+                    <Play size={19} fill="currentColor" />
+                    Watch Premiere Now
                   </Link>
-                  <Link to={contentPath(hero)} className="btn-secondary px-5 py-3 text-sm">
-                    <Info size={17} /> More details
-                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={toggleHeroWatchlist}
+                    className={cn(
+                      'btn px-5 py-3.5 text-sm font-semibold transition-all duration-200',
+                      heroInWatchlist
+                        ? 'border border-gold-500/50 bg-gold-500/15 text-gold-300 shadow-gold hover:bg-gold-500/25'
+                        : 'border border-white/15 bg-white/5 text-white hover:border-white/30 hover:bg-white/10'
+                    )}
+                  >
+                    <Bookmark size={16} className={heroInWatchlist ? 'fill-current' : ''} />
+                    {heroInWatchlist ? 'In My Watchlist' : '+ Add to Watchlist'}
+                  </button>
+
                   <Link
-                    to={SECTIONS[sectionForKind(hero.content_type ?? 'movie')].basePath}
-                    className="btn-ghost px-4 py-3 text-sm text-zinc-400"
+                    to={contentPath(hero)}
+                    className="btn-secondary px-5 py-3.5 text-sm"
                   >
-                    Browse {SECTIONS[sectionForKind(hero.content_type ?? 'movie')].label}
-                    <ArrowRight size={15} />
+                    <Info size={16} /> Details
                   </Link>
                 </div>
               </div>
 
-              <div className="hidden justify-center lg:flex">
+              {/* Marquee Poster Showcase */}
+              <div className="hidden lg:flex justify-end">
                 <Link
                   to={contentPath(hero)}
-                  className="group relative block w-[240px] overflow-hidden rounded-2xl ring-1 ring-white/20 transition hover:ring-white/40"
+                  className="group relative block w-[290px] overflow-hidden rounded-2xl border-2 border-gold-500/30 bg-ink-900 shadow-[0_30px_70px_-20px_rgba(0,0,0,1)] transition duration-500 hover:border-gold-500/70 hover:scale-[1.03]"
                 >
                   <img
                     src={hero.poster || '/assets/poster-fallback.svg'}
                     alt={hero.title}
                     loading="eager"
-                    className="aspect-[2/3] w-full object-cover transition duration-700 group-hover:scale-105"
+                    className="aspect-[2/3] w-full object-cover transition duration-700 group-hover:scale-105 group-hover:brightness-90"
                   />
-                  <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                  <span className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] font-semibold text-white">
-                    <span>{hero.category_name ?? kindLabel(hero.content_type ?? 'movie')}</span>
-                    <Play size={15} />
-                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+
+                  {/* Golden Cinema Frame Badge */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-lg bg-black/80 px-2 py-1 text-[10px] font-bold text-gold-300 ring-1 ring-gold-500/30 backdrop-blur">
+                    <Star size={11} className="fill-current text-gold-400" /> Premiere Selection
+                  </div>
+
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs font-semibold text-white">
+                    <span className="truncate pr-2">{hero.category_name ?? kindLabel(hero.content_type ?? 'movie')}</span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-glow transition group-hover:scale-110">
+                      <Play size={14} fill="currentColor" className="ml-0.5" />
+                    </span>
+                  </div>
                 </Link>
               </div>
             </div>
+          ) : (
+            <EmptyState
+              icon={Clapperboard}
+              title="Welcome to FREE2WATCH 5-Star Cinema"
+              description="Publish a movie, TV series, or anime in the administrator dashboard to inaugurate the grand marquee."
+              action={{ label: 'Explore search', to: '/search' }}
+            />
+          )}
 
-            {heroItems.length > 1 && (
-              <div className="relative flex items-center justify-between gap-4 border-t border-white/10 bg-black/25 px-6 py-3 backdrop-blur sm:px-9 lg:px-12">
-                <div className="flex items-center gap-1.5">
-                  {heroItems.map((item, index) => (
+          {/* Interactive Marquee Reel Carousel Tabs */}
+          {heroItems.length > 1 && (
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {heroItems.map((item, index) => {
+                  const isActive = index === heroIndex;
+                  return (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => setHeroIndex(index)}
-                      aria-label={`Show featured title ${index + 1}: ${item.title}`}
-                      aria-current={index === heroIndex}
                       className={cn(
-                        'h-1.5 rounded-full transition-all',
-                        index === heroIndex ? 'w-8 bg-brand-500' : 'w-3 bg-white/25 hover:bg-white/50'
+                        'group flex items-center gap-2.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200',
+                        isActive
+                          ? 'border-gold-500/60 bg-gold-500/15 text-white ring-1 ring-gold-500/30'
+                          : 'border-white/10 bg-white/[0.02] text-zinc-400 hover:border-white/20 hover:text-white'
                       )}
-                    />
-                  ))}
-                </div>
-                <div className="hidden items-center gap-2 text-[11px] text-zinc-500 sm:flex">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
-                  Now streaming on FREE2WATCH
-                </div>
+                    >
+                      <span
+                        className={cn(
+                          'font-mono font-bold text-[11px]',
+                          isActive ? 'text-gold-400' : 'text-zinc-500 group-hover:text-zinc-300'
+                        )}
+                      >
+                        0{index + 1}
+                      </span>
+                      <span className="truncate max-w-[140px] sm:max-w-[180px]">{item.title}</span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        ) : (
-          <EmptyState
-            icon={Clapperboard}
-            title="The catalogue is waiting for its first title"
-            description="Publish a movie, series, TV show or anime from the administrator dashboard and it will appear here instantly."
-            action={{ label: 'Explore search', to: '/search' }}
-          />
-        )}
+
+              <div className="hidden sm:flex items-center gap-2 text-[11px] text-zinc-500">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>4K Master Audio · Free High-Definition Streaming</span>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* Trending / quick links */}
-      <div className="container-page mt-10 space-y-12 sm:mt-14 sm:space-y-16">
+      {/* MAIN CATALOGUE CONTENT */}
+      <div className="container-page mt-8 sm:mt-12 space-y-12 sm:space-y-16">
+        {/* Continue Watching Section (VIP local resume) */}
+        <ContinueWatchingRow />
+
+        {/* 4 Quick Category Shortcuts */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {(['movies', 'series', 'tv-shows', 'anime'] as const).map((section) => {
             const meta = SECTIONS[section];
@@ -219,81 +338,95 @@ export function HomePage() {
               <Link
                 key={section}
                 to={meta.basePath}
-                className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 transition hover:border-brand-500/40 hover:bg-brand-500/[0.06]"
+                className="group flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5 transition-all duration-300 hover:border-gold-500/40 hover:bg-gold-500/[0.05]"
               >
-                <span>
-                  <span className="block font-display text-sm font-semibold text-white">{meta.label}</span>
-                  <span className="mt-0.5 block text-[11px] text-zinc-500">Browse the full collection</span>
-                </span>
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-zinc-400 transition group-hover:bg-brand-500 group-hover:text-white">
-                  <Icon size={18} />
+                <div>
+                  <span className="block font-display text-base font-bold text-white group-hover:text-gold-300 transition">
+                    {meta.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-zinc-500">Browse collection</span>
+                </div>
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 text-zinc-400 ring-1 ring-white/10 transition group-hover:bg-gold-500 group-hover:text-black group-hover:ring-gold-500/50">
+                  <Icon size={19} />
                 </span>
               </Link>
             );
           })}
         </div>
 
+        {/* Top Header Leaderboard Ad Banner */}
+        <AdSenseBanner slotType="header" />
+
         {data && (
           <>
+            {/* BOX OFFICE TOP 10 CHART */}
+            <TopTenRow items={data.trending} loading={loading} />
+
+            {/* In-feed Catalog Ad */}
+            <AdSenseBanner slotType="in_feed" />
+
+            {/* Latest Feature Movies */}
             <ContentRow
-              title="Trending now"
-              subtitle="Fresh additions across every content type"
-              items={data.trending}
+              title="Latest Cinema Releases"
+              subtitle="Fresh feature films ready to stream in full resolution"
+              items={data.latest.movies}
+              defaultKind="movie"
               loading={loading}
               accent
-              viewAllHref="/search?sort=latest"
-            />
-
-            <ContentRow
-              title="Latest movies"
-              subtitle="New cinema, ready when you are"
-              items={data.latest.movies}
-              loading={loading}
               viewAllHref="/movies"
             />
 
+            {/* Latest TV Series */}
             <ContentRow
-              title="Latest TV series"
-              subtitle="Multi-season stories to sink into"
+              title="Binge-Worthy TV Series"
+              subtitle="Complete seasons and multi-episode sagas"
               items={data.latest.series}
+              defaultKind="series"
               loading={loading}
               viewAllHref="/series"
             />
 
+            {/* Latest TV Shows */}
             <ContentRow
-              title="Latest TV shows"
-              subtitle="Episodic formats, season after season"
+              title="Popular TV Shows"
+              subtitle="Episodic entertainment and television specials"
               items={data.latest.tvShows}
+              defaultKind="tv_show"
               loading={loading}
               viewAllHref="/tv-shows"
             />
 
+            {/* Latest Anime Masterpieces */}
             <ContentRow
-              title="Latest anime"
-              subtitle="Japanese, Chinese and dubbed worlds"
+              title="Anime Masterpieces"
+              subtitle="Japanese animation, subbed & dubbed releases"
               items={data.latest.anime}
+              defaultKind="anime"
               loading={loading}
               viewAllHref="/anime"
             />
 
+            {/* Recommended */}
             <ContentRow
-              title="Recommended for you"
-              subtitle="A rotating mix from the whole catalogue"
+              title="Critics' Recommendations"
+              subtitle="Curated gems from the cinema archives"
               items={data.recommended}
               loading={loading}
               viewAllHref="/search"
             />
 
-            {/* Categories */}
-            <section className="space-y-6">
+            {/* Curated Taxonomy Categories */}
+            <section className="space-y-6 pt-4">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <span className="eyebrow">Explore</span>
-                  <h2 className="section-title mt-1">Browse by category</h2>
+                  <span className="eyebrow flex items-center gap-1.5 text-gold-400">
+                    <Crown size={12} /> Curated
+                  </span>
+                  <h2 className="section-title mt-1">Explore by Category</h2>
                 </div>
                 <Link
                   to="/search"
-                  className="hidden items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-brand-300 sm:flex"
+                  className="hidden items-center gap-1.5 text-xs font-semibold text-zinc-400 transition hover:text-gold-300 sm:flex"
                 >
                   All titles <ArrowRight size={14} />
                 </Link>
@@ -308,23 +441,25 @@ export function HomePage() {
                   {categoryKeys.map((kind) => (
                     <div
                       key={kind}
-                      className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+                      className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-gold-500/20"
                     >
                       <div className="flex items-center justify-between">
-                        <h3 className="font-display text-sm font-semibold text-white">
+                        <h3 className="font-display text-sm font-bold text-white">
                           {SECTIONS[sectionForKind(kind)].label}
                         </h3>
-                        <span className="text-[11px] text-zinc-600">{categoryGroups[kind]?.length ?? 0} groups</span>
+                        <span className="text-[11px] font-mono text-zinc-500">
+                          {categoryGroups[kind]?.length ?? 0} groups
+                        </span>
                       </div>
                       <ul className="mt-4 space-y-2">
                         {(categoryGroups[kind] ?? []).slice(0, 6).map((category) => (
                           <li key={`${kind}-${category.id}`}>
                             <Link
                               to={`${SECTIONS[sectionForKind(kind)].basePath}/category/${category.slug}`}
-                              className="group flex items-center justify-between gap-2 text-sm text-zinc-400 transition hover:text-white"
+                              className="group flex items-center justify-between gap-2 text-xs text-zinc-400 transition hover:text-gold-300"
                             >
                               <span className="truncate">{category.name}</span>
-                              <span className="shrink-0 rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500 transition group-hover:bg-brand-500/20 group-hover:text-brand-200">
+                              <span className="shrink-0 rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-mono text-zinc-500 transition group-hover:bg-gold-500/20 group-hover:text-gold-200">
                                 {category.item_count}
                               </span>
                             </Link>
@@ -345,21 +480,18 @@ export function HomePage() {
 
 function HeroSkeleton() {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-ink-900">
-      <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[1.35fr_0.65fr] lg:items-center lg:p-12">
-        <div className="space-y-4">
-          <div className="h-4 w-24 skeleton" />
-          <div className="h-12 w-4/5 skeleton" />
-          <div className="h-4 w-2/5 skeleton" />
-          <div className="h-4 w-full skeleton" />
-          <div className="h-4 w-3/4 skeleton" />
-          <div className="flex gap-3 pt-3">
-            <div className="h-11 w-32 skeleton rounded-xl" />
-            <div className="h-11 w-32 skeleton rounded-xl" />
-          </div>
+    <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
+      <div className="space-y-5">
+        <div className="h-6 w-36 skeleton rounded-full" />
+        <div className="h-16 w-4/5 skeleton rounded-xl" />
+        <div className="h-4 w-2/5 skeleton" />
+        <div className="h-16 w-full skeleton rounded-xl" />
+        <div className="flex gap-3 pt-3">
+          <div className="h-12 w-44 skeleton rounded-xl" />
+          <div className="h-12 w-36 skeleton rounded-xl" />
         </div>
-        <div className="hidden aspect-[2/3] w-[240px] justify-self-center skeleton rounded-2xl lg:block" />
       </div>
+      <div className="hidden aspect-[2/3] w-[290px] justify-self-end skeleton rounded-2xl lg:block" />
     </div>
   );
 }
