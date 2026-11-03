@@ -6,11 +6,14 @@ import {
   Clapperboard,
   Compass,
   Crown,
+  Dices,
   Film,
   Info,
+  MessageSquarePlus,
   Play,
   Sparkles,
   Star,
+  Ticket,
   TrendingUp,
   Volume2,
 } from 'lucide-react';
@@ -354,6 +357,71 @@ export function HomePage() {
           })}
         </div>
 
+        {/* 5-STAR CINEMA INTERACTIVE CONCIERGE DUO */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Cinema Roulette */}
+          <div className="relative overflow-hidden rounded-2xl border border-gold-500/25 bg-gradient-to-br from-gold-950/30 via-ink-900/80 to-ink-950 p-5 sm:p-6 shadow-gold transition hover:border-gold-500/50">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gold-500/20 text-gold-400 border border-gold-500/30">
+                    <Dices size={16} />
+                  </span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-gold-400 font-mono">
+                    Cinema Roulette
+                  </span>
+                </div>
+                <h3 className="mt-2 font-display text-lg font-bold text-white">
+                  Can't decide what to watch tonight?
+                </h3>
+                <p className="mt-1 text-xs text-zinc-400 max-w-sm">
+                  Let our marquee pick a top-rated movie, series or anime matching your favorite genre.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-2">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('f2w:open-surprise'))}
+                className="btn-cinema-gold py-2.5 px-5 text-xs font-bold flex items-center gap-2"
+              >
+                <Dices size={14} /> Spin Cinema Roulette
+              </button>
+            </div>
+          </div>
+
+          {/* Title Concierge Request */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] via-ink-900/80 to-ink-950 p-5 sm:p-6 transition hover:border-white/20">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                    <MessageSquarePlus size={16} />
+                  </span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-brand-300 font-mono">
+                    VIP Concierge
+                  </span>
+                </div>
+                <h3 className="mt-2 font-display text-lg font-bold text-white">
+                  Missing a title you'd love to stream?
+                </h3>
+                <p className="mt-1 text-xs text-zinc-400 max-w-sm">
+                  Submit a quick request and our technical team will track down high-definition masters.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-2">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('f2w:open-request'))}
+                className="btn-secondary py-2.5 px-5 text-xs font-semibold flex items-center gap-2 text-white hover:border-brand-500/40"
+              >
+                <MessageSquarePlus size={14} className="text-brand-400" /> Request a Movie or Show
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Top Header Leaderboard Ad Banner */}
         <AdSenseBanner slotType="header" />
 
@@ -361,6 +429,33 @@ export function HomePage() {
           <>
             {/* BOX OFFICE TOP 10 CHART */}
             <TopTenRow items={data.trending} loading={loading} />
+
+            {/* NOW SHOWING IN THEATRES SHOWCASE BANNER */}
+            <div className="relative overflow-hidden rounded-3xl border border-gold-500/30 bg-gradient-to-r from-[#17120a] via-[#120f18] to-[#17120a] p-6 sm:p-8 shadow-cinema">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-gold-500/10 blur-[80px] pointer-events-none" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="space-y-2 max-w-xl">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/15 border border-gold-500/30 px-3 py-1 text-[11px] font-bold text-gold-400 font-mono tracking-wider">
+                    <Ticket size={13} className="fill-current text-gold-400" /> NOW IN CINEMAS WORLDWIDE
+                  </span>
+                  <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    Want to see what just hit the <span className="text-gradient-gold">Cinema Screens</span>?
+                  </h3>
+                  <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                    Browse posters of movies currently showing in theatres. Click any title to explore complete storylines, 4K trailers, box office numbers, and cast information.
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-3">
+                  <Link
+                    to="/in-theatres"
+                    className="btn-cinema-gold py-3.5 px-6 text-sm font-bold shadow-cinema flex items-center gap-2 group"
+                  >
+                    <Clapperboard size={16} /> Explore In Theatres <ArrowRight size={15} className="transition group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </div>
+            </div>
 
             {/* In-feed Catalog Ad */}
             <AdSenseBanner slotType="in_feed" />

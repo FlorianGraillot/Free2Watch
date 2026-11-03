@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bookmark,
   Calendar,
   ChevronDown,
   Clock,
   Film,
+  Flag,
   Globe2,
   Languages,
   Layers,
@@ -15,12 +17,17 @@ import {
 } from 'lucide-react';
 import type { Content, ContentDetailResponse, ContentListResponse, ContentKind } from '../types';
 import { contentService } from '../services/content.service';
+import { userPreferences } from '../services/userPreferences';
+import { useToast } from '../contexts/ToastContext';
 import { useApiData } from '../hooks/useApiData';
 import { useSeo } from '../hooks/useSeo';
 import { PosterImage } from '../components/PosterImage';
 import { VideoEmbed } from '../components/VideoEmbed';
 import { ContentRow } from '../components/ContentRow';
 import { EmptyState } from '../components/EmptyState';
+import { CommunityReactions } from '../components/CommunityReactions';
+import { CommentSection } from '../components/CommentSection';
+import { ReportStreamModal } from '../components/ReportStreamModal';
 import { Detail, DetailSkeleton } from './MovieDetailsPage';
 import { cn } from '../utils/format';
 import { categoryPath, episodePath, SECTIONS, sectionForKind } from '../utils/routes';
@@ -96,6 +103,23 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
         }
       : undefined,
   });
+
+  const { notify } = useToast();
+  const [inWatchlist, setInWatchlist] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  useEffect(() => {
+    if (content) {
+      setInWatchlist(userPreferences.isInWatchlist(content.id, kind));
+    }
+  }, [content, kind]);
+
+  const toggleWatchlist = () => {
+    if (!content) return;
+    const nowIn = userPreferences.toggleWatchlist(content, kind);
+    setInWatchlist(nowIn);
+    notify(nowIn ? 'Added to your VIP Watchlist' : 'Removed from your VIP Watchlist', 'info');
+  };
 
   if (error && !content) {
     return (
@@ -221,6 +245,19 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
                 )}
                 <button
                   type="button"
+                  onClick={toggleWatchlist}
+                  className={cn(
+                    'btn px-5 py-3 text-sm font-semibold transition',
+                    inWatchlist
+                      ? 'border border-gold-500/50 bg-gold-500/15 text-gold-300 ring-1 ring-gold-500/30'
+                      : 'btn-secondary text-white'
+                  )}
+                >
+                  <Bookmark size={16} className={inWatchlist ? 'fill-current text-gold-400' : ''} />
+                  {inWatchlist ? 'In My Watchlist' : '+ Add to Watchlist'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setTrailerOpen((open) => !open);
                     window.setTimeout(
@@ -231,6 +268,14 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
                   className="btn-secondary px-5 py-3"
                 >
                   <Film size={16} /> {trailerOpen ? 'Hide trailer' : 'Watch trailer'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportOpen(true)}
+                  className="btn-secondary px-4 py-3 text-zinc-400 hover:text-rose-300"
+                  title="Report stream or episode issue"
+                >
+                  <Flag size={15} /> Report
                 </button>
               </div>
 
@@ -363,12 +408,18 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
             )}
           </section>
 
+          {/* 5-Star Audience Reactions */}
+          <CommunityReactions contentType={kind} contentId={content.id} />
+
           <section className="panel p-5 sm:p-6">
             <h2 className="font-display text-lg font-bold text-white">Story</h2>
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-400">
               {content.story || 'No story synopsis has been added for this title yet.'}
             </p>
           </section>
+
+          {/* Cinema Community Reviews & Discussion */}
+          <CommentSection contentType={kind} contentId={content.id} />
         </div>
 
         <aside className="space-y-5">
@@ -433,6 +484,14 @@ export function SeriesDetailsPage({ kind }: { kind: 'series' | 'tv_show' | 'anim
           />
         </div>
       )}
+
+      <ReportStreamModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        contentType={kind}
+        contentId={content.id}
+        contentTitle={content.title}
+      />
     </div>
   );
 }

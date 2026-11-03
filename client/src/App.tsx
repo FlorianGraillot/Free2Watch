@@ -6,6 +6,7 @@ import { BrowsePage } from './pages/BrowsePage';
 import { MovieDetailsPage } from './pages/MovieDetailsPage';
 import { SeriesDetailsPage } from './pages/SeriesDetailsPage';
 import { WatchPage } from './pages/WatchPage';
+import { InTheatresPage } from './pages/InTheatresPage';
 import { SearchPage } from './pages/SearchPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AdminLoginPage } from './admin/AdminLoginPage';
@@ -29,6 +30,7 @@ export function App() {
         <Route element={<PublicLayout />}>
           <Route index element={<HomePage />} />
 
+          <Route path="in-theatres" element={<InTheatresPage />} />
           <Route path="movies" element={<BrowsePage section="movies" />} />
           <Route path="movies/category/:slug" element={<BrowsePage section="movies" categoryMode />} />
           <Route path="movie/:slug" element={<MovieDetailsPage />} />

@@ -17,6 +17,8 @@ import {
 import { Logo } from './Logo';
 import { PosterImage } from './PosterImage';
 import { WatchlistDrawer } from './WatchlistDrawer';
+import { SurpriseMeModal } from './SurpriseMeModal';
+import { RequestTitleModal } from './RequestTitleModal';
 import { catalogService } from '../services/catalog.service';
 import { userPreferences } from '../services/userPreferences';
 import { useDebouncedValue } from '../hooks/useApiData';
@@ -26,6 +28,7 @@ import { contentPath, kindLabel } from '../utils/routes';
 
 export const NAV_LINKS = [
   { to: '/', label: 'Home', icon: Home, exact: true },
+  { to: '/in-theatres', label: 'In Theatres', icon: Clapperboard, isCinema: true },
   { to: '/movies', label: 'Movies', icon: Film },
   { to: '/series', label: 'TV Series', icon: Tv },
   { to: '/tv-shows', label: 'TV Shows', icon: MonitorPlay },
@@ -51,13 +54,25 @@ export function Navbar() {
 
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [watchlistCount, setWatchlistCount] = useState(() => userPreferences.getWatchlist().length);
+  const [surpriseOpen, setSurpriseOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
 
   useEffect(() => {
     const handleWatchlistUpdate = (e: any) => {
       setWatchlistCount(e.detail?.count ?? userPreferences.getWatchlist().length);
     };
+    const handleSurprise = () => setSurpriseOpen(true);
+    const handleRequest = () => setRequestOpen(true);
+
     window.addEventListener('f2w:watchlist-updated', handleWatchlistUpdate);
-    return () => window.removeEventListener('f2w:watchlist-updated', handleWatchlistUpdate);
+    window.addEventListener('f2w:open-surprise', handleSurprise);
+    window.addEventListener('f2w:open-request', handleRequest);
+
+    return () => {
+      window.removeEventListener('f2w:watchlist-updated', handleWatchlistUpdate);
+      window.removeEventListener('f2w:open-surprise', handleSurprise);
+      window.removeEventListener('f2w:open-request', handleRequest);
+    };
   }, []);
 
   useEffect(() => {
@@ -152,7 +167,14 @@ export function Navbar() {
                     )
                   }
                 >
-                  {link.label}
+                  <span className="inline-flex items-center">
+                    {link.label}
+                    {link.isCinema && (
+                      <span className="ml-1.5 rounded bg-gold-500/20 px-1.5 py-0.5 text-[9px] font-bold text-gold-300 ring-1 ring-gold-500/30">
+                        CINEMA
+                      </span>
+                    )}
+                  </span>
                   {(location.pathname === link.to ||
                     isActive(location.pathname, link.to, link.exact)) && (
                     <span className="absolute inset-x-3 -bottom-0.5 h-[2px] rounded-full bg-brand-500" />
@@ -183,6 +205,17 @@ export function Navbar() {
                 /
               </kbd>
             </Link>
+
+            {/* Surprise Me / Cinema Roulette */}
+            <button
+              type="button"
+              onClick={() => setSurpriseOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gold-500/30 bg-gold-500/10 px-2.5 py-2 text-xs font-semibold text-gold-300 hover:border-gold-500/60 hover:bg-gold-500/20 transition"
+              title="Cinema Roulette — Surprise Me"
+            >
+              <Dices size={14} className="text-gold-400" />
+              <span className="hidden sm:inline">Surprise Me</span>
+            </button>
 
             {/* 5-Star Cinema VIP Watchlist Button */}
             <button
@@ -289,6 +322,16 @@ export function Navbar() {
         onClose={() => setWatchlistOpen(false)}
       />
 
+      <SurpriseMeModal
+        isOpen={surpriseOpen}
+        onClose={() => setSurpriseOpen(false)}
+      />
+
+      <RequestTitleModal
+        isOpen={requestOpen}
+        onClose={() => setRequestOpen(false)}
+      />
+
       {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -316,15 +359,23 @@ export function Navbar() {
                   <Link
                     key={link.to}
                     to={link.to}
+                    onClick={() => setMobileOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition',
+                      'flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition',
                       active
                         ? 'bg-brand-500/12 text-white ring-1 ring-brand-500/25'
                         : 'text-zinc-400 hover:bg-white/5 hover:text-white'
                     )}
                   >
-                    <Icon size={17} className={active ? 'text-brand-400' : 'text-zinc-500'} />
-                    {link.label}
+                    <span className="flex items-center gap-3">
+                      <Icon size={17} className={active ? 'text-brand-400' : 'text-zinc-500'} />
+                      {link.label}
+                    </span>
+                    {link.isCinema && (
+                      <span className="rounded bg-gold-500/20 px-2 py-0.5 text-[10px] font-bold text-gold-300 ring-1 ring-gold-500/30">
+                        IN THEATRES
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -336,11 +387,34 @@ export function Navbar() {
                   <Link
                     key={link.to}
                     to={link.to}
-                    className="rounded-lg border border-white/10 px-3 py-2 text-zinc-300 transition hover:border-white/25"
+                    className="rounded-lg border border-white/10 px-3 py-2 text-zinc-300 transition hover:border-white/25 text-center"
                   >
                     {link.label}
                   </Link>
                 ))}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-white/10 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setSurpriseOpen(true);
+                  }}
+                  className="flex-1 btn-cinema-gold btn-sm py-2 text-xs font-bold flex items-center justify-center gap-1.5"
+                >
+                  <Dices size={14} /> Surprise Me
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setRequestOpen(true);
+                  }}
+                  className="flex-1 btn-secondary btn-sm py-2 text-xs font-bold flex items-center justify-center gap-1.5"
+                >
+                  <Film size={14} /> Request Title
+                </button>
               </div>
             </div>
           </div>
@@ -389,6 +463,14 @@ export function MobileNav() {
 }
 
 export function Footer() {
+  const openRequest = () => {
+    window.dispatchEvent(new CustomEvent('f2w:open-request'));
+  };
+
+  const openSurprise = () => {
+    window.dispatchEvent(new CustomEvent('f2w:open-surprise'));
+  };
+
   return (
     <footer className="relative mt-20 border-t border-gold-500/15 bg-ink-950">
       <div className="container-page py-12 sm:pb-16">
@@ -435,17 +517,29 @@ export function Footer() {
           <div>
             <h3 className="text-xs font-bold uppercase tracking-[0.18em] text-gold-400">VIP Experience</h3>
             <ul className="mt-4 space-y-2.5 text-sm text-zinc-400">
+              <li>
+                <button
+                  type="button"
+                  onClick={openSurprise}
+                  className="flex items-center gap-2 text-zinc-400 hover:text-gold-300 transition"
+                >
+                  <Dices size={14} className="text-gold-400" /> Cinema Roulette (Surprise Me)
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={openRequest}
+                  className="flex items-center gap-2 text-zinc-400 hover:text-gold-300 transition"
+                >
+                  <Film size={14} className="text-gold-400" /> Request a Movie or Series
+                </button>
+              </li>
               <li className="flex items-center gap-2 text-zinc-400">
-                <span>·</span> Zero Buffering Triple Server
+                <span>·</span> Zero Buffering Multi-Server
               </li>
               <li className="flex items-center gap-2 text-zinc-400">
                 <span>·</span> Cinema Theater Mode (Dim Lights)
-              </li>
-              <li className="flex items-center gap-2 text-zinc-400">
-                <span>·</span> Automatic Watch Progress Resume
-              </li>
-              <li className="flex items-center gap-2 text-zinc-400">
-                <span>·</span> Private Browser Watchlist
               </li>
             </ul>
           </div>

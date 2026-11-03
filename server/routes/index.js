@@ -8,6 +8,8 @@ import { seasonRouter } from './season.routes.js';
 import { categoryController } from '../controllers/categoryController.js';
 import { genreController } from '../controllers/genreController.js';
 import { settingsController } from '../controllers/settingsController.js';
+import { communityController } from '../controllers/communityController.js';
+import { cinemaController } from '../controllers/cinemaController.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -48,5 +50,22 @@ router.delete('/genres/:id', requireAdmin, asyncHandler(genreController.remove))
 router.get('/settings/adsense', asyncHandler(settingsController.getPublicAdSense));
 router.get('/admin/settings/adsense', requireAdmin, asyncHandler(settingsController.getAdminAdSense));
 router.put('/admin/settings/adsense', requireAdmin, asyncHandler(settingsController.updateAdSense));
+
+// Community, Reactions & Engagement
+router.get('/community/comments/:contentType/:contentId', asyncHandler(communityController.getComments));
+router.post('/community/comments', asyncHandler(communityController.addComment));
+router.get('/community/reactions/:contentType/:contentId', asyncHandler(communityController.getReactions));
+router.post('/community/reactions', asyncHandler(communityController.toggleReaction));
+router.post('/community/requests', asyncHandler(communityController.createRequest));
+router.post('/community/reports', asyncHandler(communityController.createReport));
+router.get('/community/random', asyncHandler(communityController.getRandomTitle));
+
+// Theatrical Releases / Now In Theatres API
+router.get('/cinema/in-theatres', asyncHandler(cinemaController.getInTheatres));
+router.get('/cinema/movie/:id', asyncHandler(cinemaController.getMovieDetails));
+
+// Admin Community views
+router.get('/admin/community/requests', requireAdmin, asyncHandler(communityController.getAdminRequests));
+router.get('/admin/community/reports', requireAdmin, asyncHandler(communityController.getAdminReports));
 
 export default router;

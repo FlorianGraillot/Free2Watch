@@ -7,6 +7,7 @@ import {
   Clock,
   Crown,
   Film,
+  Flag,
   Globe2,
   Info,
   Languages,
@@ -25,6 +26,9 @@ import { VideoEmbed } from '../components/VideoEmbed';
 import { ContentRow } from '../components/ContentRow';
 import { EmptyState, ErrorState } from '../components/EmptyState';
 import { AdSenseBanner } from '../components/common/AdSenseBanner';
+import { CommunityReactions } from '../components/CommunityReactions';
+import { CommentSection } from '../components/CommentSection';
+import { ReportStreamModal } from '../components/ReportStreamModal';
 import { cn } from '../utils/format';
 import { categoryPath } from '../utils/routes';
 
@@ -79,6 +83,7 @@ export function MovieDetailsPage() {
 
   const { notify } = useToast();
   const [inWatchlist, setInWatchlist] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (content) {
@@ -254,6 +259,14 @@ export function MovieDetailsPage() {
                 >
                   <Film size={16} /> Trailer
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setReportOpen(true)}
+                  className="btn-secondary px-4 py-3 text-zinc-400 hover:text-rose-300"
+                  title="Report playback or stream issue"
+                >
+                  <Flag size={15} /> Report
+                </button>
               </div>
 
               <div className="mt-6 flex sm:hidden">
@@ -313,12 +326,18 @@ export function MovieDetailsPage() {
           {/* Sponsored Ad Banner */}
           <AdSenseBanner slotType="player_bottom" />
 
+          {/* 5-Star Audience Reactions */}
+          <CommunityReactions contentType="movie" contentId={content.id} />
+
           <section className="panel p-5 sm:p-6">
             <h2 className="font-display text-lg font-bold text-white">Story</h2>
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-400">
               {content.story || 'No story synopsis has been added for this title yet.'}
             </p>
           </section>
+
+          {/* Cinema Community Reviews & Discussion */}
+          <CommentSection contentType="movie" contentId={content.id} />
         </div>
 
         <aside className="space-y-5">
@@ -367,6 +386,14 @@ export function MovieDetailsPage() {
           />
         </div>
       )}
+
+      <ReportStreamModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        contentType="movie"
+        contentId={content.id}
+        contentTitle={content.title}
+      />
     </div>
   );
 }

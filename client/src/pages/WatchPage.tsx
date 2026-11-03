@@ -23,6 +23,10 @@ import { PosterImage } from '../components/PosterImage';
 import { VideoEmbed } from '../components/VideoEmbed';
 import { EmptyState } from '../components/EmptyState';
 import { AdSenseBanner } from '../components/common/AdSenseBanner';
+import { EpisodeAutoNext } from '../components/EpisodeAutoNext';
+import { CommunityReactions } from '../components/CommunityReactions';
+import { CommentSection } from '../components/CommentSection';
+import { ReportStreamModal } from '../components/ReportStreamModal';
 import { cn } from '../utils/format';
 import { contentPath, episodePath, kindLabel, SECTIONS, sectionForKind } from '../utils/routes';
 
@@ -45,6 +49,7 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
 
   const { notify } = useToast();
   const [inWatchlist, setInWatchlist] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (data?.content && data?.season && data?.episode) {
@@ -71,7 +76,7 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
   };
 
   const reportLink = () => {
-    notify('Thank you! Our cinema technical team will review this link.', 'success');
+    setReportOpen(true);
   };
 
   if (error && !data) {
@@ -210,6 +215,16 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
             </div>
           </div>
 
+          {/* Up Next Binge Bar */}
+          {next && (
+            <div className="mt-4">
+              <EpisodeAutoNext
+                nextEpisode={next}
+                nextHref={episodePath(kind, content.slug, season.season_number, next.episode_number)}
+              />
+            </div>
+          )}
+
           {/* Video Player Sponsored Banner */}
           <AdSenseBanner slotType="player_bottom" />
 
@@ -240,6 +255,16 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
             {content.genres.map((genre) => (
               <span key={genre} className="chip">{genre}</span>
             ))}
+          </div>
+
+          {/* 5-Star Audience Reactions */}
+          <div className="mt-6">
+            <CommunityReactions contentType={kind} contentId={content.id} />
+          </div>
+
+          {/* Episode Community Reviews & Discussion */}
+          <div className="mt-6">
+            <CommentSection contentType={kind} contentId={content.id} />
           </div>
         </div>
 
@@ -308,6 +333,14 @@ export function WatchPage({ kind }: { kind: 'series' | 'tv_show' | 'anime' }) {
           </div>
         </aside>
       </div>
+
+      <ReportStreamModal
+        isOpen={reportOpen}
+        onClose={() => setReportOpen(false)}
+        contentType={kind}
+        contentId={content.id}
+        contentTitle={`${content.title} — S${season.season_number}E${episode.episode_number}`}
+      />
     </div>
   );
 }
